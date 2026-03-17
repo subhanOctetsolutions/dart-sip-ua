@@ -135,6 +135,7 @@ class SocketTransport {
       return false;
     }
     String message = data.toString();
+    message.split('fingerprint');
     return socket.send(message);
   }
 

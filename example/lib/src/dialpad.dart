@@ -1,9 +1,7 @@
-import 'package:dart_sip_ua_example/src/theme_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sip_ua/sip_ua.dart';
 
@@ -78,14 +76,11 @@ class _MyDialPadWidget extends State<DialPadWidget>
       return null;
     }
 
-    var mediaConstraints = <String, dynamic>{
+    final mediaConstraints = <String, dynamic>{
       'audio': true,
       'video': {
-        'mandatory': <String, dynamic>{
-          'minWidth': '640',
-          'minHeight': '480',
-          'minFrameRate': '30',
-        },
+        'width': '1280',
+        'height': '720',
         'facingMode': 'user',
       }
     };
@@ -109,7 +104,7 @@ class _MyDialPadWidget extends State<DialPadWidget>
       mediaStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     }
 
-    helper!.call(dest, voiceOnly: voiceOnly, mediaStream: mediaStream);
+    helper!.call(dest, voiceonly: voiceOnly, mediaStream: mediaStream);
     _preferences.setString('dest', dest);
     return null;
   }
@@ -171,66 +166,57 @@ class _MyDialPadWidget extends State<DialPadWidget>
   }
 
   List<Widget> _buildDialPad() {
-    Color? textFieldColor =
-        Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5);
-    Color? textFieldFill =
-        Theme.of(context).buttonTheme.colorScheme?.surfaceContainerLowest;
     return [
       Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text('Destination URL'),
       ),
       const SizedBox(height: 8),
-      TextField(
-        keyboardType: TextInputType.text,
-        textAlign: TextAlign.center,
-        style: TextStyle(fontSize: 18, color: textFieldColor),
-        maxLines: 2,
-        decoration: InputDecoration(
-          filled: true,
-          fillColor: textFieldFill,
-          border: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.blue.withOpacity(0.5)),
-            borderRadius: BorderRadius.circular(5),
+      Container(
+        width: 500,
+        child: TextField(
+          keyboardType: TextInputType.text,
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 18, color: Colors.black54),
+          maxLines: 3,
+          decoration: InputDecoration(
+            border: OutlineInputBorder(),
           ),
-          enabledBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.blue.withOpacity(0.5)),
-            borderRadius: BorderRadius.circular(5),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: Colors.blue.withOpacity(0.5)),
-            borderRadius: BorderRadius.circular(5),
-          ),
+          controller: _textController,
         ),
-        controller: _textController,
       ),
-      SizedBox(height: 20),
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: _buildNumPad(),
-      ),
-      Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+      Container(
+        width: 500,
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: <Widget>[
-            ActionButton(
-              icon: Icons.videocam,
-              onPressed: () => _handleCall(context),
-            ),
-            ActionButton(
-              icon: Icons.dialer_sip,
-              fillColor: Colors.green,
-              onPressed: () => _handleCall(context, true),
-            ),
-            ActionButton(
-              icon: Icons.keyboard_arrow_left,
-              onPressed: () => _handleBackSpace(),
-              onLongPress: () => _handleBackSpace(true),
-            ),
-          ],
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: _buildNumPad(),
+        ),
+      ),
+      Container(
+        width: 500,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: <Widget>[
+              ActionButton(
+                icon: Icons.videocam,
+                onPressed: () => _handleCall(context),
+              ),
+              ActionButton(
+                icon: Icons.dialer_sip,
+                fillColor: Colors.green,
+                onPressed: () => _handleCall(context, true),
+              ),
+              ActionButton(
+                icon: Icons.keyboard_arrow_left,
+                onPressed: () => _handleBackSpace(),
+                onLongPress: () => _handleBackSpace(true),
+              ),
+            ],
+          ),
         ),
       ),
     ];
@@ -238,9 +224,6 @@ class _MyDialPadWidget extends State<DialPadWidget>
 
   @override
   Widget build(BuildContext context) {
-    Color? textColor = Theme.of(context).textTheme.bodyMedium?.color;
-    Color? iconColor = Theme.of(context).iconTheme.color;
-    bool isDarkTheme = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: Text("Dart SIP UA Demo"),
@@ -254,19 +237,6 @@ class _MyDialPadWidget extends State<DialPadWidget>
                   case 'about':
                     Navigator.pushNamed(context, '/about');
                     break;
-                  case 'theme':
-                    final themeProvider = Provider.of<ThemeProvider>(context,
-                        listen:
-                            false); // get the provider, listen false is necessary cause is in a function
-
-                    setState(() {
-                      isDarkTheme = !isDarkTheme;
-                    }); // change the variable
-
-                    isDarkTheme // call the functions
-                        ? themeProvider.setDarkmode()
-                        : themeProvider.setLightMode();
-                    break;
                   default:
                     break;
                 }
@@ -278,7 +248,7 @@ class _MyDialPadWidget extends State<DialPadWidget>
                         children: <Widget>[
                           Icon(
                             Icons.account_circle,
-                            color: iconColor,
+                            color: Colors.black54,
                           ),
                           SizedBox(width: 12),
                           Text('Account'),
@@ -291,26 +261,13 @@ class _MyDialPadWidget extends State<DialPadWidget>
                         children: <Widget>[
                           Icon(
                             Icons.info,
-                            color: iconColor,
+                            color: Colors.black54,
                           ),
                           SizedBox(width: 12),
                           Text('About'),
                         ],
                       ),
                       value: 'about',
-                    ),
-                    PopupMenuItem(
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            Icons.info,
-                            color: iconColor,
-                          ),
-                          SizedBox(width: 12),
-                          Text(isDarkTheme ? 'Light Mode' : 'Dark Mode'),
-                        ],
-                      ),
-                      value: 'theme',
                     )
                   ]),
         ],
@@ -318,21 +275,21 @@ class _MyDialPadWidget extends State<DialPadWidget>
       body: ListView(
         padding: EdgeInsets.symmetric(horizontal: 12),
         children: <Widget>[
-          SizedBox(height: 8),
+          SizedBox(height: 20),
           Center(
             child: Text(
               'Register Status: ${EnumHelper.getName(helper!.registerState.state)}',
-              style: TextStyle(fontSize: 18, color: textColor),
+              style: TextStyle(fontSize: 18, color: Colors.black54),
             ),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 12),
           Center(
             child: Text(
               'Received Message: $receivedMsg',
-              style: TextStyle(fontSize: 16, color: textColor),
+              style: TextStyle(fontSize: 16, color: Colors.black54),
             ),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
@@ -369,9 +326,4 @@ class _MyDialPadWidget extends State<DialPadWidget>
 
   @override
   void onNewNotify(Notify ntf) {}
-
-  @override
-  void onNewReinvite(ReInvite event) {
-    // TODO: implement onNewReinvite
-  }
 }

@@ -2,9 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:logger/logger.dart';
-import 'package:sdp_transform/sdp_transform.dart' as sdp_transform;
+
 import 'package:sip_ua/sip_ua.dart';
-import 'package:sip_ua/src/event_manager/internal_events.dart';
 import 'package:sip_ua/src/map_helper.dart';
 import 'package:sip_ua/src/transports/socket_interface.dart';
 import 'package:sip_ua/src/transports/tcp_socket.dart';
@@ -89,13 +88,12 @@ class SIPUAHelper extends EventManager {
   }
 
   Future<bool> call(String target,
-      {bool voiceOnly = false,
+      {bool voiceonly = false,
       MediaStream? mediaStream,
       List<String>? headers,
       Map<String, dynamic>? customOptions}) async {
     if (_ua != null && _ua!.isConnected()) {
-      Map<String, dynamic> options = buildCallOptions(voiceOnly);
-
+      Map<String, dynamic> options = buildCallOptions(voiceonly);
       if (customOptions != null) {
         options = MapHelper.merge(options, customOptions);
       }
@@ -104,7 +102,6 @@ class SIPUAHelper extends EventManager {
       }
       List<dynamic> extHeaders = options['extraHeaders'] as List<dynamic>;
       extHeaders.addAll(headers ?? <String>[]);
-      options['extraHeaders'] = extHeaders;
       _ua!.call(target, options);
       return true;
     } else {
@@ -116,17 +113,6 @@ class SIPUAHelper extends EventManager {
 
   Call? findCall(String id) {
     return _calls[id];
-  }
-
-  Future<void> renegotiate({
-    required Call call,
-    required bool voiceOnly,
-    Map<String, dynamic>? options,
-    bool useUpdate = false,
-    Function(IncomingMessage)? done,
-  }) async {
-    Map<String, dynamic> finalOptions = options ?? buildCallOptions(voiceOnly);
-    call.renegotiate(options: finalOptions, useUpdate: useUpdate, done: done);
   }
 
   Future<void> start(UaSettings uaSettings) async {
@@ -179,12 +165,6 @@ class SIPUAHelper extends EventManager {
     _settings.instance_id = uaSettings.instanceId;
     _settings.registrar_server = uaSettings.registrarServer;
     _settings.contact_uri = uaSettings.contact_uri;
-    _settings.connection_recovery_max_interval = 
-        uaSettings.connectionRecoveryMaxInterval;
-    _settings.connection_recovery_min_interval = 
-        uaSettings.connectionRecoveryMinInterval;
-    _settings.terminateOnAudioMediaPortZero =
-        uaSettings.terminateOnMediaPortZero;
 
     try {
       _ua = UA(_settings);
@@ -237,14 +217,10 @@ class SIPUAHelper extends EventManager {
           session.addAllEventHandlers(
               buildCallOptions()['eventHandlers'] as EventManager);
         }
-        bool hasVideo = session.data?['video'] ?? false;
-
         _calls[event.id] =
-            Call(event.id, session, CallStateEnum.CALL_INITIATION, !hasVideo);
+            Call(event.id, session, CallStateEnum.CALL_INITIATION);
         _notifyCallStateListeners(
-            event,
-            CallState(CallStateEnum.CALL_INITIATION,
-                video: session.data?['video']));
+            event, CallState(CallStateEnum.CALL_INITIATION));
       });
 
       _ua!.on(EventNewMessage(), (EventNewMessage event) {
@@ -340,11 +316,6 @@ class SIPUAHelper extends EventManager {
                 stream: event.stream, originator: event.originator));
       });
     });
-
-    handlers.on(EventReInvite(), (EventReInvite event) {
-      logger.d('Reinvite received in helper, notifying listeners');
-      _notifyReInviteListeners(event);
-    });
     handlers.on(EventCallRefer(), (EventCallRefer refer) async {
       logger.d('Refer received, Transfer current call to => ${refer.aor}');
       _notifyCallStateListeners(
@@ -360,9 +331,6 @@ class SIPUAHelper extends EventManager {
       'extraHeaders': <dynamic>[],
       'pcConfig': <String, dynamic>{
         'sdpSemantics': 'unified-plan',
-        'iceTransportPolicy':
-            (_uaSettings?.iceTransportPolicy ?? IceTransportPolicy.ALL)
-                .toParameterString(),
         'iceServers': _uaSettings?.iceServers
       },
       'mediaConstraints': <String, dynamic>{
@@ -402,10 +370,6 @@ class SIPUAHelper extends EventManager {
       'sessionTimersExpires': 120
     };
     return defaultOptions;
-  }
-
-  bool setUAParam(String parameter, dynamic value) {
-    return _ua!.set(parameter, value);
   }
 
   Message sendMessage(String target, String body,
@@ -476,24 +440,6 @@ class SIPUAHelper extends EventManager {
     }
   }
 
-  void _notifyReInviteListeners(EventReInvite event) {
-    // Copy to prevent concurrent modification exception
-    List<SipUaHelperListener> listeners = _sipUaHelperListeners.toList();
-    for (SipUaHelperListener listener in listeners) {
-      IncomingRequest request = event.request as IncomingRequest;
-      String body = request.body ?? '';
-      if (request.sdp == null && body.isNotEmpty) {
-        request.sdp = sdp_transform.parse(body);
-      }
-      listener.onNewReinvite(ReInvite(
-          sdp: request.sdp,
-          hasAudio: event.hasAudio,
-          hasVideo: event.hasVideo,
-          accept: event.callback,
-          reject: event.reject));
-    }
-  }
-
   void _notifyNotifyListeners(EventNotify event) {
     // Copy to prevent concurrent modification exception
     List<SipUaHelperListener> listeners = _sipUaHelperListeners.toList();
@@ -517,11 +463,11 @@ enum CallStateEnum {
   REFER,
   HOLD,
   UNHOLD,
-  CALL_INITIATION,
+  CALL_INITIATION
 }
 
 class Call {
-  Call(this._id, this._session, this.state, this.voiceOnly);
+  Call(this._id, this._session, this.state);
   final String? _id;
   final RTCSession _session;
 
@@ -529,7 +475,6 @@ class Call {
   RTCPeerConnection? get peerConnection => _session.connection;
   RTCSession get session => _session;
   CallStateEnum state;
-  bool voiceOnly;
 
   void answer(Map<String, dynamic> options, {MediaStream? mediaStream = null}) {
     assert(_session != null, 'ERROR(answer): rtc session is invalid!');
@@ -552,28 +497,6 @@ class Call {
 
   void hangup([Map<String, dynamic>? options]) {
     assert(_session != null, 'ERROR(hangup): rtc session is invalid!');
-    if (peerConnection != null) {
-      for (MediaStream? stream in peerConnection!.getLocalStreams()) {
-        if (stream == null) return;
-        logger.d(
-            'Stopping local stream with tracks: ${stream.getTracks().length}');
-        for (MediaStreamTrack track in stream.getTracks()) {
-          logger.d('Stopping track: ${track.kind}${track.id} ');
-          track.stop();
-        }
-      }
-      for (MediaStream? stream in peerConnection!.getRemoteStreams()) {
-        if (stream == null) return;
-        logger.d(
-            'Stopping remote stream with tracks: ${stream.getTracks().length}');
-        for (MediaStreamTrack track in stream.getTracks()) {
-          logger.d('Stopping track: ${track.kind}${track.id} ');
-          track.stop();
-        }
-      }
-    } else {
-      logger.d("peerConnection is null, can't stop tracks.");
-    }
     _session.terminate(options);
   }
 
@@ -597,13 +520,9 @@ class Call {
     _session.unmute(audio, video);
   }
 
-  void renegotiate({
-    required Map<String, dynamic>? options,
-    bool useUpdate = false,
-    Function(IncomingMessage)? done,
-  }) {
+  void renegotiate(Map<String, dynamic> options) {
     assert(_session != null, 'ERROR(renegotiate): rtc session is invalid!');
-    _session.renegotiate(options: options, useUpdate: useUpdate, done: done);
+    _session.renegotiate(options);
   }
 
   void sendDTMF(String tones, [Map<String, dynamic>? options]) {
@@ -756,21 +675,11 @@ abstract class SipUaHelperListener {
   //For SIP message coming
   void onNewMessage(SIPMessageRequest msg);
   void onNewNotify(Notify ntf);
-  void onNewReinvite(ReInvite event);
 }
 
 class Notify {
   Notify({this.request});
   IncomingRequest? request;
-}
-
-class ReInvite {
-  ReInvite({this.hasVideo, this.hasAudio, this.sdp, this.accept, this.reject});
-  bool? hasVideo;
-  bool? hasAudio;
-  Map<String, dynamic>? sdp;
-  Future<bool> Function(Map<String, dynamic> options)? accept;
-  bool Function(Map<String, dynamic> options)? reject;
 }
 
 class RegisterParams {
@@ -815,31 +724,6 @@ enum DtmfMode {
   RFC2833,
 }
 
-/// Possible values for the transport policy to be used when selecting ICE
-/// candidates.
-///
-/// See: https://udn.realityripple.com/docs/Web/API/RTCConfiguration
-enum IceTransportPolicy {
-  /// All ICE candidates will be considered.
-  /// This is the default if not specified explicitly.
-  ALL,
-
-  /// Only ICE candidates whose IP addresses are being relayed, such as those
-  /// being passed through a TURN server, will be considered.
-  RELAY,
-}
-
-extension _IceTransportPolicyEncoding on IceTransportPolicy {
-  String toParameterString() {
-    switch (this) {
-      case IceTransportPolicy.ALL:
-        return 'all';
-      case IceTransportPolicy.RELAY:
-        return 'relay';
-    }
-  }
-}
-
 class UaSettings {
   WebSocketSettings webSocketSettings = WebSocketSettings();
   TcpSocketSettings tcpSocketSettings = TcpSocketSettings();
@@ -880,18 +764,10 @@ class UaSettings {
   /// ICE Gathering Timeout, default 500ms
   int iceGatheringTimeout = 500;
 
-  /// Max interval between recovery connection, default 30 sec
-  int connectionRecoveryMaxInterval = 30;
-
-  /// Min interval between recovery connection, default 2 sec
-  int connectionRecoveryMinInterval = 2;
-
-  bool terminateOnMediaPortZero = false;
-
   /// Sip Message Delay (in millisecond) (default 0).
   int sip_message_delay = 0;
   List<Map<String, String>> iceServers = <Map<String, String>>[
-    <String, String>{'urls': 'stun:stun.l.google.com:19302'},
+    <String, String>{'url': 'stun:stun.l.google.com:19302'},
 // turn server configuration example.
 //    {
 //      'url': 'turn:123.45.67.89:3478',
@@ -899,11 +775,6 @@ class UaSettings {
 //      'credential': 'change_to_real_secret'
 //    },
   ];
-
-  /// Defines the transport policy to be used for ICE.
-  /// See [IceTransportPolicy] for possible values.
-  /// Will default to [IceTransportPolicy.ALL] if not specified.
-  IceTransportPolicy? iceTransportPolicy;
 
   /// Controls which kind of messages are to be sent to keep a SIP session
   /// alive.

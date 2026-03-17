@@ -143,15 +143,6 @@ class _MyRegisterWidget extends State<RegisterWidget>
 
   @override
   Widget build(BuildContext context) {
-    Color? textColor = Theme.of(context).textTheme.bodyMedium?.color;
-    Color? textFieldFill =
-        Theme.of(context).buttonTheme.colorScheme?.surfaceContainerLowest;
-    OutlineInputBorder border = OutlineInputBorder(
-      borderSide: BorderSide.none,
-      borderRadius: BorderRadius.circular(5),
-    );
-    Color? textLabelColor =
-        Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5);
     return Scaffold(
       appBar: AppBar(
         title: Text("SIP Account"),
@@ -162,13 +153,12 @@ class _MyRegisterWidget extends State<RegisterWidget>
           Center(
             child: Text(
               'Register Status: ${EnumHelper.getName(_registerState.state)}',
-              style: TextStyle(fontSize: 18, color: textColor),
+              style: TextStyle(fontSize: 18, color: Colors.black54),
             ),
           ),
-          SizedBox(height: 15),
+          SizedBox(height: 20),
           if (_selectedTransport == TransportType.WS) ...[
-            Text('WebSocket', style: TextStyle(color: textLabelColor)),
-            SizedBox(height: 5),
+            Text('WebSocket:'),
             TextFormField(
               controller: _wsUriController,
               keyboardType: TextInputType.text,
@@ -177,85 +167,51 @@ class _MyRegisterWidget extends State<RegisterWidget>
             ),
           ],
           if (_selectedTransport == TransportType.TCP) ...[
-            Text('Port', style: TextStyle(color: textLabelColor)),
-            SizedBox(height: 5),
+            Text('Port:'),
             TextFormField(
               controller: _portController,
               keyboardType: TextInputType.text,
               textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: textFieldFill,
-                border: border,
-                enabledBorder: border,
-                focusedBorder: border,
-              ),
             ),
           ],
-          SizedBox(height: 15),
-          Text('SIP URI', style: TextStyle(color: textLabelColor)),
-          SizedBox(height: 5),
+          SizedBox(height: 20),
+          Text('SIP URI:'),
           TextFormField(
             controller: _sipUriController,
             keyboardType: TextInputType.text,
             autocorrect: false,
             textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: textFieldFill,
-              border: border,
-              enabledBorder: border,
-              focusedBorder: border,
-            ),
           ),
-          SizedBox(height: 15),
-          Text('Authorization User', style: TextStyle(color: textLabelColor)),
-          SizedBox(height: 5),
+          SizedBox(height: 20),
+          Text('Authorization User:'),
           TextFormField(
             controller: _authorizationUserController,
             keyboardType: TextInputType.text,
             autocorrect: false,
             textAlign: TextAlign.center,
             decoration: InputDecoration(
-              filled: true,
-              fillColor: textFieldFill,
-              border: border,
-              enabledBorder: border,
-              focusedBorder: border,
               hintText:
                   _authorizationUserController.text.isEmpty ? '[Empty]' : null,
             ),
           ),
-          SizedBox(height: 15),
-          Text('Password', style: TextStyle(color: textLabelColor)),
-          SizedBox(height: 5),
+          SizedBox(height: 20),
+          Text('Password:'),
           TextFormField(
             controller: _passwordController,
             keyboardType: TextInputType.text,
             autocorrect: false,
             textAlign: TextAlign.center,
             decoration: InputDecoration(
-              filled: true,
-              fillColor: textFieldFill,
-              border: border,
-              enabledBorder: border,
-              focusedBorder: border,
               hintText: _passwordController.text.isEmpty ? '[Empty]' : null,
             ),
           ),
-          SizedBox(height: 15),
-          Text('Display Name', style: TextStyle(color: textLabelColor)),
-          SizedBox(height: 5),
+          SizedBox(height: 20),
+          Text('Display Name:'),
           TextFormField(
             controller: _displayNameController,
             keyboardType: TextInputType.text,
             textAlign: TextAlign.center,
             decoration: InputDecoration(
-              filled: true,
-              fillColor: textFieldFill,
-              border: border,
-              enabledBorder: border,
-              focusedBorder: border,
               hintText: _displayNameController.text.isEmpty ? '[Empty]' : null,
             ),
           ),
@@ -307,10 +263,5 @@ class _MyRegisterWidget extends State<RegisterWidget>
   @override
   void onNewNotify(Notify ntf) {
     // NO OP
-  }
-
-  @override
-  void onNewReinvite(ReInvite event) {
-    // TODO: implement onNewReinvite
   }
 }

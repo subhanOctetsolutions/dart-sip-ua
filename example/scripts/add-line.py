@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
 import sys
@@ -21,22 +21,24 @@ def insertBefore(filename, pattern, text):
     with open(filename, 'r+') as fp:
         line_number = findLine(pattern, fp)
         if(line_number > 0):
-            print('Insert', text,'to line', line_number)
+            print 'Insert', text,'to line', line_number
             fp.seek(0)
             lines = fp.readlines()
             fp.seek(0)
             lines.insert(line_number - 1, text + '\n')
             fp.writelines(lines)
             return
-        print('pattern',text,'not found!')
+        print 'pattern',text,'not found!'
 
 def replaceText(filename, pattern, text):
     with open(filename, 'r') as fp:
         lines = fp.read()
-    lines = re.sub(pattern, text, lines)
-    print('Replace', pattern ,'to', text)
-    with open(filename, 'w') as fp:
+        fp.close()
+        lines = (re.sub(pattern, text, lines))
+        print 'Replace', pattern ,'to', text
+        fp = open(filename, 'w')
         fp.write(lines)
+        fp.close()
 
 def main(argv):
     inputfile = ''
@@ -46,11 +48,11 @@ def main(argv):
     try:
         opts, args = getopt.getopt(argv, "hi:s:t:r")
     except getopt.GetoptError:
-        print('add-line.py -i <inputfile> -s <string> -t <text>')
+        print 'add-line.py -i <inputfile> -s <string> -t <text>'
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print('add-line.py -i <inputfile> -s <string> -t <text>')
+            print 'add-line.py -i <inputfile> -s <string> -t <text>'
             sys.exit()
         elif opt in ("-i"):
             inputfile = arg

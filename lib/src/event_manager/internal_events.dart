@@ -97,13 +97,10 @@ class EventUpdate extends EventType {
   bool Function(Map<String, dynamic> options)? reject;
 }
 
-class EventReInvite extends EventType {
-  EventReInvite(
-      {this.request, this.callback, this.reject, this.hasAudio, this.hasVideo});
+class EventReinvite extends EventType {
+  EventReinvite({this.request, this.callback, this.reject});
   dynamic request;
-  bool? hasAudio;
-  bool? hasVideo;
-  Future<bool> Function(Map<String, dynamic> options)? callback;
+  bool Function(Map<String, dynamic> options)? callback;
   bool Function(Map<String, dynamic> options)? reject;
 }
 
